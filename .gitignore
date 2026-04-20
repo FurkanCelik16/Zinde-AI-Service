@@ -1,0 +1,8 @@
+.env
+venv/
+__pycache__/
+*.pyc
+.vscode/
+test_results.json
+run_conversation_test*.py
+run_detailed_test.py
