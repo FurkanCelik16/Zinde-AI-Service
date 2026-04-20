@@ -5,9 +5,8 @@ psycopg2-binary
 python-dotenv
 llama-index-core
 llama-index-llms-groq
-llama-index-embeddings-huggingface
 llama-index-vector-stores-pinecone
 pinecone-client
 pydantic
 pydantic-settings
-huggingface_hub
+requests

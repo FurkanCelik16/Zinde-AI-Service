@@ -1,18 +1,43 @@
 """
 Zinde AI Service — Konfigürasyon
-LLM, Embedding, Pinecone ve Prompt ayarları tek bir yerde.
+LLM, Embedding (Custom Light), Pinecone ve Prompt ayarları.
 """
 
 import os
+import requests
+from typing import List
 from dotenv import load_dotenv
 
 from llama_index.core import Settings, PromptTemplate
 from llama_index.llms.groq import Groq
-from llama_index.embeddings.huggingface import HuggingFaceInferenceAPI
+from llama_index.core.embeddings import BaseEmbedding
 from llama_index.vector_stores.pinecone import PineconeVectorStore
 from pinecone import Pinecone
 
 load_dotenv()
+
+# ── Custom Light HF Embedding (No Torch!) ────────────────
+class HFLightEmbedding(BaseEmbedding):
+    """Hugging Face Inference API'ye doğrudan requests atan hafif sınıf."""
+    def __init__(self, model_name: str, token: str, **kwargs):
+        super().__init__(**kwargs)
+        self.model_name = model_name
+        self.token = token
+        self.api_url = f"https://api-inference.huggingface.co/pipeline/feature-extraction/{model_name}"
+
+    def _get_query_embedding(self, query: str) -> List[float]:
+        return self._get_text_embedding(query)
+
+    def _get_text_embedding(self, text: str) -> List[float]:
+        headers = {"Authorization": f"Bearer {self.token}"}
+        response = requests.post(self.api_url, headers=headers, json={"inputs": text})
+        return response.json()
+
+    async def _aget_query_embedding(self, query: str) -> List[float]:
+        return self._get_query_embedding(query)
+
+    async def _aget_text_embedding(self, text: str) -> List[float]:
+        return self._get_text_embedding(text)
 
 # ── Groq LLM ──────────────────────────────────────────────
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
@@ -21,9 +46,9 @@ GROQ_MODEL = "llama-3.3-70b-versatile"
 llm = Groq(model=GROQ_MODEL, api_key=GROQ_API_KEY)
 Settings.llm = llm
 
-# Hugging Face Inference API (Fast, Cloud-based, No local torch needed)
+# Tiny & Rapid Embedding (Cloud-based API, zero local footprint)
 HF_TOKEN = os.getenv("HF_TOKEN")
-Settings.embed_model = HuggingFaceInferenceAPI(
+Settings.embed_model = HFLightEmbedding(
     model_name="BAAI/bge-small-en-v1.5", 
     token=HF_TOKEN
 )
