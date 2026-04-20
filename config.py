@@ -26,7 +26,7 @@ class HFLightEmbedding(BaseEmbedding):
     api_url: str = Field(description="İstek atılacak URL")
 
     def __init__(self, model_name: str, token: str, **kwargs):
-        api_url = f"https://api-inference.huggingface.co/pipeline/feature-extraction/{model_name}"
+        api_url = f"https://api-inference.huggingface.co/models/{model_name}"
         super().__init__(model_name=model_name, token=token, api_url=api_url, **kwargs)
 
     def _get_query_embedding(self, query: str) -> List[float]:
