@@ -207,6 +207,63 @@ async def ask_question(request: QueryRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# ── Senkronizasyon Endpoint'i (Pinecone 768px Re-indexing) ──
+
+@app.post("/sync-to-pinecone")
+async def sync_to_pinecone(db: Session = Depends(get_db)):
+    """Veritabanındaki her şeyi Pinecone'a tekrar basar (Gemini 768 boyutlu index için)."""
+    try:
+        results = {"coaches": 0, "packages": 0, "supplements": 0}
+        
+        # 1. Coaches
+        coaches = db.query(models.Coach).all()
+        for coach in coaches:
+            full_name = f"{coach.user.first_name} {coach.user.last_name}" if coach.user else "Bilinmeyen Hoca"
+            upsert_coach(
+                coach_id=coach.id,
+                coach_name=full_name,
+                specializations=coach.specializations or "Genel Fitness",
+                city=coach.city or "Türkiye",
+                years_of_experience=coach.years_of_experience or 0
+            )
+            results["coaches"] += 1
+
+        # 2. Packages
+        packages = db.query(models.TrainerPackage).all()
+        for pkg in packages:
+            coach = db.query(models.Coach).filter(models.Coach.user_id == pkg.trainer_id).first()
+            coach_name = f"{coach.user.first_name} {coach.user.last_name}" if coach and coach.user else "Zinde Hocası"
+            coach_city = coach.city if coach else "Türkiye"
+            user_id = coach.user_id if coach else None
+            
+            upsert_package(
+                pkg_id=pkg.id,
+                name=pkg.name,
+                description=pkg.description,
+                total_lessons=pkg.total_lessons,
+                price=pkg.price,
+                coach_name=coach_name,
+                coach_city=coach_city,
+                user_id=user_id
+            )
+            results["packages"] += 1
+
+        # 3. Supplements
+        supps = db.query(models.Supplement).all()
+        for supp in supps:
+            upsert_supplement(
+                supp_id=supp.id,
+                brand=supp.brand,
+                product_name=supp.product_name,
+                description=supp.description
+            )
+            results["supplements"] += 1
+
+        return {"status": "success", "synced": results}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # ── Supplement Endpoint'leri ──────────────────────────────
 
 @app.post("/add-supplement")
