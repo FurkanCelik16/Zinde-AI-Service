@@ -209,7 +209,7 @@ async def ask_question(request: QueryRequest):
 
 # ── Senkronizasyon Endpoint'i (Pinecone 768px Re-indexing) ──
 
-@app.post("/sync-to-pinecone")
+@app.get("/sync-to-pinecone")
 async def sync_to_pinecone(db: Session = Depends(get_db)):
     """Veritabanındaki her şeyi Pinecone'a tekrar basar (Gemini 768 boyutlu index için)."""
     try:
