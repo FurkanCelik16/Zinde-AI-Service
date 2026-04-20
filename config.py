@@ -23,7 +23,7 @@ Settings.llm = llm
 
 # Gemini Embedding (Cloud-based, faster and lighter for deployment)
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-Settings.embed_model = GeminiEmbedding(model_name="models/embedding-001", api_key=GOOGLE_API_KEY)
+Settings.embed_model = GeminiEmbedding(model_name="models/text-embedding-004", api_key=GOOGLE_API_KEY)
 
 # ── Pinecone ──────────────────────────────────────────────
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
