@@ -4,6 +4,7 @@ LLM, Embedding (Custom Light), Pinecone ve Prompt ayarları.
 """
 
 import os
+import time
 import requests
 from typing import List, Any
 from dotenv import load_dotenv
@@ -33,12 +34,33 @@ class HFLightEmbedding(BaseEmbedding):
 
     def _get_text_embedding(self, text: str) -> List[float]:
         headers = {"Authorization": f"Bearer {self.token}"}
-        response = requests.post(self.api_url, headers=headers, json={"inputs": text})
-        # Hugging Face Inference API bazen liste içinde liste döner, onu düzeltiyoruz
-        result = response.json()
-        if isinstance(result, list) and len(result) > 0 and isinstance(result[0], list):
-            return result[0]
-        return result
+        
+        # Modelin uyanması için gerekirse 3 kez deneme yap
+        for attempt in range(3):
+            try:
+                response = requests.post(self.api_url, headers=headers, json={"inputs": text}, timeout=10)
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    if isinstance(result, list) and len(result) > 0 and isinstance(result[0], list):
+                        return result[0]
+                    return result
+                
+                # Model henüz yükleniyorsa bekle (503 Service Unavailable)
+                err_data = response.json()
+                if "loading" in str(err_data).lower():
+                    print(f"[HF] Model yükleniyor, bekleniyor (Deneme {attempt+1})...")
+                    time.sleep(15)
+                    continue
+                
+                print(f"[HF ERROR] Status {response.status_code}: {response.text}")
+                break
+                
+            except Exception as e:
+                print(f"[HF CRITICAL ERROR] {str(e)}")
+                break
+        
+        return [0.0] * 384 # Hata durumunda boş vektör dön (çökmemesi için)
 
     async def _aget_query_embedding(self, query: str) -> List[float]:
         return self._get_query_embedding(query)
