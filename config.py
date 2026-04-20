@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 
 from llama_index.core import Settings, PromptTemplate
 from llama_index.llms.groq import Groq
-from llama_index.embeddings.gemini import GeminiEmbedding
+from llama_index.embeddings.huggingface import HuggingFaceInferenceAPI
 from llama_index.vector_stores.pinecone import PineconeVectorStore
 from pinecone import Pinecone
 
@@ -21,9 +21,12 @@ GROQ_MODEL = "llama-3.3-70b-versatile"
 llm = Groq(model=GROQ_MODEL, api_key=GROQ_API_KEY)
 Settings.llm = llm
 
-# Gemini Embedding (Cloud-based, faster and lighter for deployment)
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-Settings.embed_model = GeminiEmbedding(model_name="models/text-embedding-004", api_key=GOOGLE_API_KEY)
+# Hugging Face Inference API (Fast, Cloud-based, No local torch needed)
+HF_TOKEN = os.getenv("HF_TOKEN")
+Settings.embed_model = HuggingFaceInferenceAPI(
+    model_name="BAAI/bge-small-en-v1.5", 
+    token=HF_TOKEN
+)
 
 # ── Pinecone ──────────────────────────────────────────────
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
