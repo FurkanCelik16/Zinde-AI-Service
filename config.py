@@ -33,34 +33,42 @@ class HFLightEmbedding(BaseEmbedding):
         return self._get_text_embedding(query)
 
     def _get_text_embedding(self, text: str) -> List[float]:
+        if not self.token or len(self.token) < 5:
+             raise ValueError("HF_TOKEN eksik veya çok kısa. Lütfen Railway ayarlarını kontrol edin.")
+             
         headers = {"Authorization": f"Bearer {self.token}"}
         
-        # Modelin uyanması için gerekirse 3 kez deneme yap
-        for attempt in range(3):
+        # Daha sabırlı bir bekleme mekanizması (5 deneme x 15 saniye)
+        for attempt in range(5):
             try:
-                response = requests.post(self.api_url, headers=headers, json={"inputs": text}, timeout=10)
+                response = requests.post(self.api_url, headers=headers, json={"inputs": text}, timeout=15)
                 
                 if response.status_code == 200:
                     result = response.json()
-                    if isinstance(result, list) and len(result) > 0 and isinstance(result[0], list):
-                        return result[0]
-                    return result
+                    if isinstance(result, list) and len(result) > 0:
+                        if isinstance(result[0], list):
+                            return result[0]
+                        return result
+                    raise ValueError(f"HF API geçerli bir liste döndürmedi: {result}")
                 
-                # Model henüz yükleniyorsa bekle (503 Service Unavailable)
-                err_data = response.json()
-                if "loading" in str(err_data).lower():
-                    print(f"[HF] Model yükleniyor, bekleniyor (Deneme {attempt+1})...")
-                    time.sleep(15)
+                err_text = response.text
+                if "loading" in err_text.lower() or response.status_code == 503:
+                    print(f"[HF] Model uyanıyor ({self.model_name})... {attempt+1}. deneme...")
+                    time.sleep(20)
                     continue
                 
-                print(f"[HF ERROR] Status {response.status_code}: {response.text}")
-                break
+                # Başka bir hata varsa (401, 404, 400 vb) doğrudan fırlat
+                raise Exception(f"HF API Hatası ({response.status_code}): {err_text}")
                 
             except Exception as e:
-                print(f"[HF CRITICAL ERROR] {str(e)}")
-                break
+                # Eğer tüm denemeler bittiyse veya kritik bir hataysa
+                if attempt == 4:
+                    raise e
+                if "loading" not in str(e).lower():
+                    raise e
+                time.sleep(20)
         
-        return [0.0] * 384 # Hata durumunda boş vektör dön (çökmemesi için)
+        raise Exception("Hugging Face modeli uyanamadı. Lütfen birkaç dakika sonra tekrar deneyin.")
 
     async def _aget_query_embedding(self, query: str) -> List[float]:
         return self._get_query_embedding(query)
