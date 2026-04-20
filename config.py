@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 
 from llama_index.core import Settings, PromptTemplate
 from llama_index.llms.groq import Groq
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
+from llama_index.embeddings.gemini import GeminiEmbedding
 from llama_index.vector_stores.pinecone import PineconeVectorStore
 from pinecone import Pinecone
 
@@ -20,7 +20,10 @@ GROQ_MODEL = "llama-3.3-70b-versatile"
 
 llm = Groq(model=GROQ_MODEL, api_key=GROQ_API_KEY)
 Settings.llm = llm
-Settings.embed_model = HuggingFaceEmbedding(model_name="BAAI/bge-small-en-v1.5")
+
+# Gemini Embedding (Cloud-based, faster and lighter for deployment)
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+Settings.embed_model = GeminiEmbedding(model_name="models/embedding-001", api_key=GOOGLE_API_KEY)
 
 # ── Pinecone ──────────────────────────────────────────────
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
