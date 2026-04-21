@@ -22,7 +22,7 @@ import models
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 from intent_service import classify_intent, get_query_engine
-from vector_service import upsert_coach, upsert_supplement, upsert_package
+from vector_service import upsert_coach, upsert_supplement, upsert_package, delete_coach, delete_package
 
 Base.metadata.create_all(bind=engine)
 
@@ -231,6 +231,10 @@ async def sync_to_pinecone(db: Session = Depends(get_db)):
         # 2. Packages
         packages = db.query(models.TrainerPackage).all()
         for pkg in packages:
+            if not pkg.active:
+                delete_package(pkg.id)
+                continue
+
             coach = db.query(models.Coach).filter(models.Coach.user_id == pkg.trainer_id).first()
             coach_name = f"{coach.user.first_name} {coach.user.last_name}" if coach and coach.user else "Zinde Hocası"
             coach_city = coach.city if coach else "Türkiye"
@@ -351,16 +355,21 @@ def run_database_sync(db: Session):
         )
         upsert_coach(coach.id, coach_name, coach.specializations, coach.city, coach.years_of_experience)
 
-    # 2. Paketleri upsert et
-    packages = db.query(models.TrainerPackage).filter(models.TrainerPackage.active == True).all()
-    for pkg in packages:
-        # fetch coach for details
-        coach = db.query(models.Coach).filter(models.Coach.user_id == pkg.trainer_id).first()
-        coach_city = coach.city if coach else "Belirtilmemiş"
-        coach_name = f"{coach.user.first_name} {coach.user.last_name}" if (coach and coach.user) else "Antrenör"
-        upsert_package(pkg.id, pkg.name, pkg.description, pkg.total_lessons, pkg.price, coach_name, coach_city, pkg.trainer_id)
+    # 2. Paketleri upsert et (veya sil)
+    all_packages = db.query(models.TrainerPackage).all()
+    active_count = 0
+    for pkg in all_packages:
+        if pkg.active:
+            # fetch coach for details
+            coach = db.query(models.Coach).filter(models.Coach.user_id == pkg.trainer_id).first()
+            coach_city = coach.city if coach else "Belirtilmemiş"
+            coach_name = f"{coach.user.first_name} {coach.user.last_name}" if (coach and coach.user) else "Antrenör"
+            upsert_package(pkg.id, pkg.name, pkg.description, pkg.total_lessons, pkg.price, coach_name, coach_city, pkg.trainer_id)
+            active_count += 1
+        else:
+            delete_package(pkg.id)
 
-    return len(coaches), len(packages)
+    return len(coaches), active_count
 
 
 @app.post("/sync-database-to-ai")

@@ -1,8 +1,9 @@
+from __future__ import annotations
 import os
 from sqlalchemy.orm import Session
 from database import SessionLocal, engine
 import models
-from vector_service import upsert_coach, upsert_package, upsert_supplement
+from vector_service import upsert_coach, upsert_package, upsert_supplement, delete_coach, delete_package
 
 def sync_data():
     db = SessionLocal()
@@ -27,6 +28,10 @@ def sync_data():
         packages = db.query(models.TrainerPackage).all()
         print(f"Found {len(packages)} packages. Syncing...")
         for pkg in packages:
+            if not pkg.active:
+                delete_package(pkg.id)
+                continue
+
             # Paket hangi hocaya ait bulalım (user_id üzerinden)
             coach = db.query(models.Coach).filter(models.Coach.user_id == pkg.trainer_id).first()
             coach_name = f"{coach.user.first_name} {coach.user.last_name}" if coach and coach.user else "Zinde Hocası"
@@ -57,7 +62,7 @@ def sync_data():
             )
             print(f"Synced Supplement: {supp.product_name}")
 
-        print("\nSUCCESS: All data synced to Pinecone (768 dimensions).")
+        print("\nSUCCESS: All data synced to Pinecone (384 dimensions).")
         
     except Exception as e:
         print(f"ERROR: {str(e)}")

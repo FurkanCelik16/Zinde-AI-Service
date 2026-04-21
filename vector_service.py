@@ -113,3 +113,25 @@ def upsert_package(pkg_id: int, name: str, description: str, total_lessons: int,
     except Exception:
         pass
     index.insert(doc)
+
+
+def delete_coach(coach_id: int):
+    """Antrenörü Pinecone'dan siler."""
+    doc_id = f"coach_{coach_id}"
+    index = _get_index()
+    try:
+        index.delete_ref_doc(doc_id)
+        print(f"Deleted Coach from Pinecone: {doc_id}")
+    except Exception as e:
+        print(f"Error deleting Coach {doc_id}: {e}")
+
+
+def delete_package(pkg_id: int):
+    """Paketi Pinecone'an siler."""
+    doc_id = f"package_{pkg_id}"
+    index = _get_index()
+    try:
+        index.delete_ref_doc(doc_id)
+        print(f"Deleted Package from Pinecone: {doc_id}")
+    except Exception as e:
+        print(f"Error deleting Package {doc_id}: {e}")
