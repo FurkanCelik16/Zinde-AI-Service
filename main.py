@@ -16,7 +16,7 @@ from pydantic import BaseModel
 from llama_index.core import Document, VectorStoreIndex, SimpleDirectoryReader
 
 from database import engine, Base, get_db, SessionLocal
-from config import vector_store, llm
+from config import vector_store, llm, PROGRAM_JSON_PROMPT
 import models
 
 logging.basicConfig(level=logging.INFO)
@@ -112,6 +112,35 @@ async def ask_question(request: QueryRequest):
                 "intent": intent,
                 "interactive_cards": []
             }
+            
+        # ── Workout/Diet Program Oluşturma (JSON) ─────────────
+        if intent in ["workout", "diet"]:
+            type_tr = "antrenman" if intent == "workout" else "diyet"
+            prompt = PROGRAM_JSON_PROMPT.format(type=type_tr, query=contextualized_query)
+            
+            llm_response = llm.complete(prompt).text.strip()
+            
+            # JSON temizleme (bazı LLM'ler markdown bloğu içinde dönebilir)
+            clean_json = llm_response
+            if "```json" in clean_json:
+                clean_json = clean_json.split("```json")[1].split("```")[0].strip()
+            elif "```" in clean_json:
+                clean_json = clean_json.split("```")[1].split("```")[0].strip()
+            
+            import json
+            try:
+                program_data = json.loads(clean_json)
+                return {
+                    "status": "success",
+                    "answer": f"Senin için harika bir {type_tr} programı hazırladım! Aşağıdan detayları inceleyebilirsin.",
+                    "intent": intent,
+                    "program_data": program_data,
+                    "interactive_cards": []
+                }
+            except Exception as parse_error:
+                print(f"[JSON PARSE ERROR]: {parse_error}\nRaw: {llm_response}")
+                # Parse hatası olursa düz metin olarak devam et (fallback)
+                pass 
             
         query_engine = get_query_engine(intent)
         response = query_engine.query(contextualized_query)

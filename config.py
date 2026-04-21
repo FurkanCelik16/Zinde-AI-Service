@@ -48,3 +48,30 @@ ZINDE_PROMPT_STR = (
     "ZİNDE ASİSTAN: "
 )
 ZINDE_PROMPT = PromptTemplate(ZINDE_PROMPT_STR)
+
+# ── Program (Workout/Diet) JSON Prompt ──────────────────
+PROGRAM_JSON_PROMPT_STR = (
+    "Sen bir profesyonel spor ve beslenme uzmanısın. Kullanıcının talebine göre özelleştirilmiş bir {type} programı/listesi hazırla.\n"
+    "Yanıtını SADECE geçerli bir JSON formatında ver. Yanıtında JSON dışında hiçbir metin, açıklama veya markdown işareti (```json gibi) KESİNLİKLE bulunmamalıdır.\n\n"
+    "ÖRNEK FORMAT (ANTRENMAN):\n"
+    "{{\n"
+    "  \"title\": \"Örnek Antrenman Programı\",\n"
+    "  \"type\": \"workout\",\n"
+    "  \"data\": [\n"
+    "    {{\"exercise\": \"Hareket Adı\", \"sets\": 3, \"reps\": \"12\", \"notes\": \"Dikkat edilecek nokta\"}},\n"
+    "    ... \n"
+    "  ]\n"
+    "}}\n\n"
+    "ÖRNEK FORMAT (DİYET):\n"
+    "{{\n"
+    "  \"title\": \"Örnek Diyet Listesi\",\n"
+    "  \"type\": \"diet\",\n"
+    "  \"data\": [\n"
+    "    {{\"meal\": \"Öğün Adı (örn: Kahvaltı)\", \"items\": [\"Yiyecek 1\", \"Yiyecek 2\"], \"notes\": \"Açıklama\"}},\n"
+    "    ... \n"
+    "  ]\n"
+    "}}\n\n"
+    "KULLANICI TALEBİ: {query}\n"
+    "JSON ÇIKTISI:"
+)
+PROGRAM_JSON_PROMPT = PromptTemplate(PROGRAM_JSON_PROMPT_STR)
