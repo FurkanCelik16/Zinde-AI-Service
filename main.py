@@ -24,9 +24,24 @@ logger = logging.getLogger(__name__)
 from intent_service import classify_intent, get_query_engine
 from vector_service import upsert_coach, upsert_supplement, upsert_package, delete_coach, delete_package
 
-Base.metadata.create_all(bind=engine)
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup logic
+    print("\n--- [STARTUP]: Booting Zinde AI Service ---")
+    try:
+        Base.metadata.create_all(bind=engine)
+        print("[STARTUP]: Database tables verified.")
+    except Exception as e:
+        print(f"[STARTUP ERROR]: Database connection failed: {e}")
+        
+    yield
+    # Shutdown logic
+    print("--- [SHUTDOWN]: Stopping Service ---")
 
-app = FastAPI(title="Zinde AI RAG Service")
+app = FastAPI(
+    title="Zinde AI RAG Service",
+    lifespan=lifespan
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -57,6 +72,12 @@ class DocumentRequest(BaseModel):
 @app.get("/")
 def read_root():
     return {"status": "active", "service": "Zinde AI"}
+
+
+@app.get("/health")
+async def health_check():
+    """Server'ın canlı olduğunu doğrulamak için basit endpoint (CORS testi için ideal)."""
+    return {"status": "ok", "timestamp": str(asyncio.get_event_loop().time())}
 
 
 @app.post("/ask-question")

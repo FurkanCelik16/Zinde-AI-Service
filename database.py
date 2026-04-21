@@ -9,8 +9,16 @@ load_dotenv()
 # .env dosyana eklediğin DATABASE_URL'i çeker
 SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
 
+if SQLALCHEMY_DATABASE_URL and SQLALCHEMY_DATABASE_URL.startswith("postgres://"):
+    SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
 # Veritabanı motorunu oluştur
-engine = create_engine(SQLALCHEMY_DATABASE_URL)
+if not SQLALCHEMY_DATABASE_URL:
+    print("WARNING: DATABASE_URL not set. Database features will fail.")
+    # Railway'de patlamasın diye dummy bir sqlite engine oluşturalım (opsiyonel ama güvenli)
+    engine = create_engine("sqlite:///./fallback.db", connect_args={"check_same_thread": False})
+else:
+    engine = create_engine(SQLALCHEMY_DATABASE_URL)
 
 # Veritabanı ile konuşacak oturum (Session) ayarı
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

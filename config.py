@@ -18,17 +18,29 @@ load_dotenv()
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 GROQ_MODEL = "llama-3.3-70b-versatile"
 
-llm = Groq(model=GROQ_MODEL, api_key=GROQ_API_KEY)
-Settings.llm = llm
+if not GROQ_API_KEY:
+    print("WARNING: GROQ_API_KEY not set. AI personality features will fail.")
+    llm = None
+else:
+    llm = Groq(model=GROQ_MODEL, api_key=GROQ_API_KEY)
+    Settings.llm = llm
 
 # FastEmbed: ONNX tabanlı, torch yok, API key yok, 384 boyut
 Settings.embed_model = FastEmbedEmbedding(model_name="BAAI/bge-small-en-v1.5")
 
 # ── Pinecone ──────────────────────────────────────────────
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
-pc = Pinecone(api_key=PINECONE_API_KEY)
-pinecone_index = pc.Index("zinde-index")
-vector_store = PineconeVectorStore(pinecone_index=pinecone_index)
+if not PINECONE_API_KEY:
+    print("WARNING: PINECONE_API_KEY not set. Vector search will fail.")
+    vector_store = None
+else:
+    pc = Pinecone(api_key=PINECONE_API_KEY)
+    try:
+        pinecone_index = pc.Index("zinde-index")
+        vector_store = PineconeVectorStore(pinecone_index=pinecone_index)
+    except Exception as e:
+        print(f"WARNING: Pinecone index connection failed: {e}")
+        vector_store = None
 
 # ── Zinde Asistan Prompt'u ────────────────────────────────
 ZINDE_PROMPT_STR = (
